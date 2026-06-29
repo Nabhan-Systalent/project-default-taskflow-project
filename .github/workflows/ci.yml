@@ -1,0 +1,33 @@
+name: CI — 85b566ab-33f3-46ae-b0d8-67ff8b453bff
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        # Dependency caching is intentionally NOT enabled here. actions/setup-node's
+        # `cache:` input fails the step ("Dependencies lock file is not found") when no
+        # package-lock.json / yarn.lock is committed — the normal state of a freshly
+        # generated repo. The install steps already fall back to `npm install` when no
+        # lockfile exists, so correctness does not depend on a cache.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ${{ secrets.ghcr.io }}/85b566ab-33f3-46ae-b0d8-67ff8b453bff:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
